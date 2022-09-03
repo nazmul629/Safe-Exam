@@ -73,18 +73,19 @@ with mp_face_mesh.FaceMesh(
     min_detection_confidence=0.5,
     min_tracking_confidence=.05
 ) as face_mesh:
+
     while True:
         ret, frame = cam.read()
         if not ret:
             break;
 
         frame = cv2.flip(frame,1)
-        rgb_frame = cv2.cvtColor(frame,cv2.COLOR_BGRA2RGB);
+        # rgb_frame = cv2.cvtColor(frame,cv2.COLOR_BGRA2RGB);
         img_h, img_w = frame.shape[:2]
 
         # print("image_h ", image_h, "\nimage_w", image_w)
 
-        results = face_mesh.process(rgb_frame);
+        results = face_mesh.process(frame);
 
         if results.multi_face_landmarks:
             mesh_points = np.array([np.multiply([p.x, p.y],  [img_w, img_h]).astype(int) for p in results.multi_face_landmarks[0].landmark])

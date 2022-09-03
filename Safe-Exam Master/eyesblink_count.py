@@ -3,6 +3,9 @@ import  cv2
 from cvzone.FaceMeshModule import FaceMeshDetector
 from cvzone.PlotModule import LivePlot
 
+
+
+
 cap =  cv2.VideoCapture(0)
 
 
