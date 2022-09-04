@@ -119,10 +119,64 @@ with mp_face_mesh.FaceMesh(
 
         frame = cv2.flip(frame, 1)
 
-        # for Eyes Tracking
 
+
+
+
+        # for Eyes Tracking
         img_h, img_w = frame.shape[:2]
         results = face_mesh.process(frame);
+
+
+        face_locations, face_names = sfr.detect_known_faces(frame)
+        for face_loc, name in zip(face_locations, face_names):
+            y1, x2, y2, x1 = face_loc[0], face_loc[1], face_loc[2], face_loc[3]
+
+            if name != "Unknown":
+                cv2.putText(frame, name, (x1, y1 - 10), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 255, 0), 2)
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 4)
+                # For Eyes Tracking
+
+                if results.multi_face_landmarks:
+                    mesh_points = np.array([np.multiply([p.x, p.y], [img_w, img_h]).astype(int) for p in
+                                                        results.multi_face_landmarks[0].landmark])
+                    # print(mesh_points)
+                    (l_cx, l_cy), l_radius = cv2.minEnclosingCircle(mesh_points[LEFT_IRIS])
+                    (r_cx, r_cy), r_radius = cv2.minEnclosingCircle(mesh_points[RIGHT_IRIS])
+
+                    center_right = np.array([r_cx, r_cy], dtype=np.int32)
+                    center_left = np.array([l_cx, l_cy], dtype=np.int32)
+
+                    cv2.circle(frame, center_left, 2, (255, 255, 255), -1, cv2.LINE_AA)
+                    cv2.circle(frame, center_right, 2, (255, 255, 255), -1, cv2.LINE_AA)
+
+                    cv2.circle(frame, center_left, int(l_radius), (255, 0, 255), 1, cv2.LINE_AA)
+                    cv2.circle(frame, center_right, int(r_radius), (255, 0, 255), 1, cv2.LINE_AA)
+
+                    # Showing Right eyes  4 Point
+                    cv2.circle(frame, mesh_points[R_H_RIGHT][0], 3, (255, 255, 255), -1, cv2.LINE_AA)
+                    cv2.circle(frame, mesh_points[R_H_LEFT][0], 3, (0, 255, 255), -1, cv2.LINE_AA)
+
+                    cv2.circle(frame, mesh_points[L_TOP][0], 2, (255, 255, 255), -1, cv2.LINE_AA)
+                    cv2.circle(frame, mesh_points[L_DOWN][0], 2, (0, 255, 255), -1, cv2.LINE_AA)
+
+                    iris_pos, ratio = iris_position(center_right, mesh_points[R_H_RIGHT],mesh_points[R_H_LEFT][0])
+                    iris_up_down_pos, u_d_ratio = iris_up_down_position(center_left, mesh_points[L_TOP],
+                                                                                    mesh_points[L_DOWN][0])
+
+                    print(u_d_ratio)
+                    if iris_pos == "Center":
+                        cv2.putText(frame, f"Iris Positon: {iris_pos} {ratio:.2f}", (30, 30),
+                        cv2.FONT_HERSHEY_PLAIN, 1.2, (255, 255, 0), 1, cv2.LINE_AA)
+                    else:
+                         cv2.putText(frame, f"Iris Positon: {iris_pos} {ratio:.2f}", (30, 30),
+                         cv2.FONT_HERSHEY_PLAIN, 1.2, (0, 0, 255), 1, cv2.LINE_AA)
+
+
+
+            else:
+                cv2.putText(frame, name, (x1, y1 - 10), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 200), 2)
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 200), 4)
 
 
 
@@ -147,64 +201,65 @@ with mp_face_mesh.FaceMesh(
 
             class_name = classes[class_id]
 
+            #
+            # if class_name == "person":
+            #     face_locations, face_names = sfr.detect_known_faces(frame)
+            #     for face_loc, name in zip(face_locations, face_names):
+            #         y1, x2, y2, x1 = face_loc[0], face_loc[1], face_loc[2], face_loc[3]
+            #         if name != "Unknown":
+            #             cv2.putText(frame, name, (x1, y1 - 10), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 255, 0), 2)
+            #             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 4)
+            #
+            #             # For Eyes Tracking
+            #
+            #             if results.multi_face_landmarks:
+            #                 mesh_points = np.array([np.multiply([p.x, p.y], [img_w, img_h]).astype(int) for p in
+            #                                         results.multi_face_landmarks[0].landmark])
+            #                 # print(mesh_points)
+            #                 (l_cx, l_cy), l_radius = cv2.minEnclosingCircle(mesh_points[LEFT_IRIS])
+            #                 (r_cx, r_cy), r_radius = cv2.minEnclosingCircle(mesh_points[RIGHT_IRIS])
+            #
+            #                 center_left = np.array([l_cx, l_cy], dtype=np.int32)
+            #                 center_right = np.array([r_cx, r_cy], dtype=np.int32)
+            #
+            #                 cv2.circle(frame, center_left, 2, (255, 255, 255), -1, cv2.LINE_AA)
+            #                 cv2.circle(frame, center_right, 2, (255, 255, 255), -1, cv2.LINE_AA)
+            #
+            #                 cv2.circle(frame, center_left, int(l_radius), (255, 0, 255), 1, cv2.LINE_AA)
+            #                 cv2.circle(frame, center_right, int(r_radius), (255, 0, 255), 1, cv2.LINE_AA)
+            #
+            #                 # Showing Right eyes  4 Point
+            #                 cv2.circle(frame, mesh_points[R_H_RIGHT][0], 3, (255, 255, 255), -1, cv2.LINE_AA)
+            #                 cv2.circle(frame, mesh_points[R_H_LEFT][0], 3, (0, 255, 255), -1, cv2.LINE_AA)
+            #
+            #                 cv2.circle(frame, mesh_points[L_TOP][0], 2, (255, 255, 255), -1, cv2.LINE_AA)
+            #                 cv2.circle(frame, mesh_points[L_DOWN][0], 2, (0, 255, 255), -1, cv2.LINE_AA)
+            #
+            #                 iris_pos, ratio = iris_position(center_right, mesh_points[R_H_RIGHT],
+            #                                                 mesh_points[R_H_LEFT][0])
+            #                 iris_up_down_pos, u_d_ratio = iris_up_down_position(center_left, mesh_points[L_TOP],
+            #                                                                     mesh_points[L_DOWN][0])
+            #
+            #                 print(u_d_ratio)
+            #                 if iris_pos == "Center":
+            #                     cv2.putText(frame, f"Iris Positon: {iris_pos} {ratio:.2f}", (30, 30),
+            #                                 cv2.FONT_HERSHEY_PLAIN, 1.2, (255, 255, 0), 1, cv2.LINE_AA)
+            #                 else:
+            #                     cv2.putText(frame, f"Iris Positon: {iris_pos} {ratio:.2f}", (30, 30),
+            #                                 cv2.FONT_HERSHEY_PLAIN, 1.2, (0, 0, 255), 1, cv2.LINE_AA)
+            #
+            #
+            #
+            #
+            #
+            #         else:
+            #             cv2.putText(frame, name, (x1, y1 - 10), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 200), 2)
+            #             cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 4)
+            #
+            #
 
-            if class_name == "person":
-                face_locations, face_names = sfr.detect_known_faces(frame)
-                for face_loc, name in zip(face_locations, face_names):
-                    y1, x2, y2, x1 = face_loc[0], face_loc[1], face_loc[2], face_loc[3]
-                    if name != "Unknown":
-                        cv2.putText(frame, name, (x1, y1 - 10), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 255, 0), 2)
-                        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 4)
-
-                        # For Eyes Tracking
-
-                        if results.multi_face_landmarks:
-                            mesh_points = np.array([np.multiply([p.x, p.y], [img_w, img_h]).astype(int) for p in
-                                                    results.multi_face_landmarks[0].landmark])
-                            # print(mesh_points)
-                            (l_cx, l_cy), l_radius = cv2.minEnclosingCircle(mesh_points[LEFT_IRIS])
-                            (r_cx, r_cy), r_radius = cv2.minEnclosingCircle(mesh_points[RIGHT_IRIS])
-
-                            center_left = np.array([l_cx, l_cy], dtype=np.int32)
-                            center_right = np.array([r_cx, r_cy], dtype=np.int32)
-
-                            cv2.circle(frame, center_left, 2, (255, 255, 255), -1, cv2.LINE_AA)
-                            cv2.circle(frame, center_right, 2, (255, 255, 255), -1, cv2.LINE_AA)
-
-                            cv2.circle(frame, center_left, int(l_radius), (255, 0, 255), 1, cv2.LINE_AA)
-                            cv2.circle(frame, center_right, int(r_radius), (255, 0, 255), 1, cv2.LINE_AA)
-
-                            # Showing Right eyes  4 Point
-                            cv2.circle(frame, mesh_points[R_H_RIGHT][0], 3, (255, 255, 255), -1, cv2.LINE_AA)
-                            cv2.circle(frame, mesh_points[R_H_LEFT][0], 3, (0, 255, 255), -1, cv2.LINE_AA)
-
-                            cv2.circle(frame, mesh_points[L_TOP][0], 2, (255, 255, 255), -1, cv2.LINE_AA)
-                            cv2.circle(frame, mesh_points[L_DOWN][0], 2, (0, 255, 255), -1, cv2.LINE_AA)
-
-                            iris_pos, ratio = iris_position(center_right, mesh_points[R_H_RIGHT],
-                                                            mesh_points[R_H_LEFT][0])
-                            iris_up_down_pos, u_d_ratio = iris_up_down_position(center_left, mesh_points[L_TOP],
-                                                                                mesh_points[L_DOWN][0])
-
-                            print(u_d_ratio)
-                            if iris_pos == "Center":
-                                cv2.putText(frame, f"Iris Positon: {iris_pos} {ratio:.2f}", (30, 30),
-                                            cv2.FONT_HERSHEY_PLAIN, 1.2, (255, 255, 0), 1, cv2.LINE_AA)
-                            else:
-                                cv2.putText(frame, f"Iris Positon: {iris_pos} {ratio:.2f}", (30, 30),
-                                            cv2.FONT_HERSHEY_PLAIN, 1.2, (0, 0, 255), 1, cv2.LINE_AA)
-
-
-
-
-
-                    else:
-                        cv2.putText(frame, name, (x1, y1 - 10), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 200), 2)
-                        cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 4)
-
-
-
-            else:
+            # else:
+            if class_name != "person":
                 cv2.putText(frame,class_name,(x,y-5),cv2.FONT_HERSHEY_PLAIN, 2,(0,255,255),2 )
                 cv2.rectangle(frame,(x,y),(x+w,y+h),(0,255,255),3)
 
